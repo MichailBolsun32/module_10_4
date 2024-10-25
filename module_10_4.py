@@ -48,10 +48,9 @@ class Cafe:
             if col_tables > 0:
                 for table in self.tables: # iteration by tables
                     if table.guest is None:
-                        table.guest = guest.name
-                        guest.start()
-                        #guest.join()
-                        print(f'{guest.name} сел(-а) за стол номер {table.number}')
+                        table.guest = guest
+                        table.guest.start()
+                        print(f'{table.guest.name} сел(-а) за стол номер {table.number}')
                         col_tables -= 1
                         break
             else:
@@ -59,21 +58,46 @@ class Cafe:
                 print(f'{guest.name} в очереди')
 
         for i in range(len(self.tables)):
-            guests[i].join()
+            #print(i)
+            self.tables[i].guest.join()
 
 #Метод discuss_guests(self): Этот метод имитирует процесс обслуживания гостей.
-#    Обслуживание должно происходить пока очередь не пустая (метод empty) или хотя бы один стол занят.
-#    Если за столом есть гость(поток) и гость(поток) закончил приём пищи
+#    1. Обслуживание должно происходить пока очередь не пустая (метод empty) или хотя бы один стол занят.
+#    2. Если за столом есть гость(поток) и гость(поток) закончил приём пищи
 #   (поток завершил работу - метод is_alive),
 #    то вывести строки "<имя гостя за текущим столом> покушал(-а) и ушёл(ушла)" и "Стол номер <номер стола> свободен".
 #    Так же текущий стол освобождается (table.guest = None).
-#    Если очередь ещё не пуста (метод empty) и стол один из столов освободился (None),
+#    3. Если очередь ещё не пуста (метод empty) и стол один из столов освободился (None),
 #    то текущему столу присваивается гость взятый из очереди (queue.get()).
 #    Далее выводится строка "<имя гостя из очереди> вышел(-ла) из очереди и сел(-а) за стол номер <номер стола>"
-#    Далее запустить поток этого гостя (start)
+#    4. Далее запустить поток этого гостя (start)
 
     def discuss_guests(self): # обслужить гостей
-        pass
+        # проверка на занятость стола
+        def table_free(table):
+            if table.guest is None:
+                return False
+            else:
+                return True
+
+        while True:
+            # пока очередь не пустая (метод empty) или хотя бы один стол занят
+            if self.queue.empty() and sum(map(table_free, self.tables)) == 0:
+               return
+            else:
+                for table in self.tables:
+                    # Если за столом есть гость(поток) и гость(поток) закончил приём пищи
+                    # (поток завершил работу - метод is_alive),
+                    if (table.guest is not None) and table.guest.is_alive() == False:
+                        print(f"{table.guest.name} покушал(-а) и ушёл(ушла)")
+                        print(f'Стол номер {table.number} свободен')
+                        table.guest = None
+                    #Если очередь ещё не пуста (метод empty) и стол один из столов освободился (None)
+                    if (self.queue.empty() == False) and table.guest is None:
+                        table.guest = self.queue.get()
+                        print(f"{table.guest.name} вышел(-ла) из очереди и сел(-а) за стол номер {table.number}")
+                        table.guest.start()
+                        table.guest.join()
 
 # Создание столов
 tables = [Table(number) for number in range(1, 6)]
@@ -95,9 +119,3 @@ cafe.guest_arrival(*guests)
 
 # Обслуживание гостей
 cafe.discuss_guests()
-
-#Примечания:
-    # Для проверки значения на None используйте оператор is (table.guest is None).
-    # Для добавления в очередь используйте метод put, для взятия - get.
-    # Для проверки пустоты очереди используйте метод empty.
-    # Для проверки выполнения потока в текущий момент используйте метод is_alive.
